@@ -7,3 +7,5 @@ langchain_openai
 langchain-community
 scikit-learn
 fastapi
+PyPDF2
+pdf2image

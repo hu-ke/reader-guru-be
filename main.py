@@ -10,13 +10,14 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
-from langchain.vectorstores import Chroma, Pinecone
+# from langchain.vectorstores import Chroma, Pinecone
 from fastapi import FastAPI, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from extractImg import extract_cover
 from turnTextIntoTokens import num_tokens_from_string
 from dotenv import load_dotenv
+import bmemcached
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
 BOOKS_COVERS_DIR = Path() / 'book_covers'
@@ -37,6 +38,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
+client = bmemcached.Client(('m-t4na309c514fbe44.memcache.singapore.rds.aliyuncs.com:11211'), 'm-t4na309c514fbe44', os.getenv('MEMCACHED_PWD'))
 global_cache: dict[str, str]= {}
 
 def load_book(file_obj, file_extension):
@@ -87,9 +89,11 @@ def summarize_chunks(docs, selected_indices, openai_api_key):
     map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
     selected_docs = [docs[i] for i in selected_indices]
     summary_list = []
+    chain = load_summarize_chain(llm=llm3_turbo, chain_type="stuff", prompt=map_prompt_template)
 
     for doc in selected_docs:
-        chunk_summary = load_summarize_chain(llm=llm3_turbo, chain_type="stuff", prompt=map_prompt_template).run([doc])
+        chunk_summary = chain.run([doc])
+        print(chunk_summary)
         summary_list.append(chunk_summary)
     
     return "\n".join(summary_list)
@@ -115,9 +119,12 @@ def generate_summary(openai_api_key, num_clusters=11, verbose=False):
     # extract_book_texts(uploaded_file)
     # docs, vectors, tokens = split_and_embed(global_cache.get('texts'), openai_api_key)
     d = dict()
-    vectors = global_cache.get('vectors')
+    # vectors = global_cache.get('vectors')
+    vectors = client.get(global_cache.get('vector_key'))
+    docs = client.get(global_cache.get('doc_key'))
+    print(len(vectors))
     selected_indices = cluster_embeddings(vectors, num_clusters)
-    summaries = summarize_chunks(global_cache.get('docs'), selected_indices, openai_api_key)
+    summaries = summarize_chunks(docs, selected_indices, openai_api_key)
     final_summary = create_final_summary(summaries, openai_api_key)
     # return final_summary
     d['final_summary'] = final_summary
@@ -126,6 +133,7 @@ def generate_summary(openai_api_key, num_clusters=11, verbose=False):
 
 @app.post("/api/uploadfile/")
 async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(None, alias="deviceId")):
+    print('start upload.')
     data = await file_upload.read()
     personal_book_directory = BOOKS_DIR / deviceId
     target_file =  personal_book_directory / file_upload.filename
@@ -134,29 +142,39 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
     cover_name = os.path.splitext(file_upload.filename)[0].lower()
     cover_name = f"{cover_name}.png"
-    personal_book_cover_direcory = BOOKS_COVERS_DIR / deviceId
-    if not os.path.exists(personal_book_cover_direcory):
-        os.makedirs(personal_book_cover_direcory)
 
-    target_book_cover = personal_book_cover_direcory / cover_name
+    target_book_cover = BOOKS_COVERS_DIR / cover_name
 
     with open(target_file, 'wb') as f:
         f.write(data)
     
+    print('start to generate book cover')
     extract_cover(target_file, target_book_cover)
+    print('book cover generated.')
+    mem_key_prefix = deviceId + "_" + file_upload.filename
+    print(mem_key_prefix)
 
     with open(target_file, 'rb') as file:
         texts = extract_book_texts(file)
-        docs, vectors, tokens = split_and_embed(texts, openai_api_key)
-        global_cache['docs'] = docs
-        global_cache['vectors'] = vectors
+        print('text generated.')
+        
+    docs, vectors, tokens = split_and_embed(texts, openai_api_key)
+    print('docs, vectors, tokens generated.')
+    doc_key = f'{mem_key_prefix}_doc'
+    global_cache['doc_key'] = doc_key
+    client.set(doc_key, docs, 600)
+
+    vector_key = f'{mem_key_prefix}_vector'
+    global_cache['vector_key'] = vector_key
+    client.set(vector_key, vectors, 600)
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
+    client.set('IS_UPLOADING', 'NO', 600)
     return {
         'code': 200,
         'msg': 'the book has been uploaded successfully.',
         'data': {
-            'coverImgUrl': f'https://reader.guru/images/{cover_name}',
+            'coverImgUrl': f'http://reader.guru/images/{cover_name}',
             'numsOfTokens': tokens,
             'numsOfDocs': len(docs),
             'tokensOfFirstDoc': tokens_of_first_doc,
@@ -178,6 +196,24 @@ async def summarize_file(request: dict):
             'fileName': request['filename'],
             'summary': res['final_summary'],
         }
+    }
+
+@app.get('/api/grabservice')
+async def grabService():
+    # client.set('IS_UPLOADING', 'NO')
+    isUploading = client.get('IS_UPLOADING')
+    if isUploading == 'YES':
+        return {
+            'code': 429,
+            'msg': 'server is busy',
+            'data': ''
+        }
+    
+    client.set('IS_UPLOADING', 'YES', 600)
+    return {
+        'code': 200,
+        'msg': 'service available',
+        'data': '' 
     }
 
 @app.get('/api')
