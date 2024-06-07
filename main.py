@@ -169,7 +169,7 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
     client.set(vector_key, vectors, 600)
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
-    client.set('IS_UPLOADING', 'NO', 600)
+    # client.set('IS_UPLOADING', 'NO', 600)
     return {
         'code': 200,
         'msg': 'the book has been uploaded successfully.',
@@ -198,23 +198,23 @@ async def summarize_file(request: dict):
         }
     }
 
-@app.get('/api/grabservice')
-async def grabService():
-    # client.set('IS_UPLOADING', 'NO')
-    isUploading = client.get('IS_UPLOADING')
-    if isUploading == 'YES':
-        return {
-            'code': 429,
-            'msg': 'server is busy',
-            'data': ''
-        }
+# @app.get('/api/grabservice')
+# async def grabService():
+#     # client.set('IS_UPLOADING', 'NO')
+#     isUploading = client.get('IS_UPLOADING')
+#     if isUploading == 'YES':
+#         return {
+#             'code': 429,
+#             'msg': 'server is busy',
+#             'data': ''
+#         }
     
-    client.set('IS_UPLOADING', 'YES', 600)
-    return {
-        'code': 200,
-        'msg': 'service available',
-        'data': '' 
-    }
+#     client.set('IS_UPLOADING', 'YES', 600)
+#     return {
+#         'code': 200,
+#         'msg': 'service available',
+#         'data': '' 
+#     }
 
 @app.get('/api')
 async def root(): 

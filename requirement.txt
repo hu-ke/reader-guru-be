@@ -9,3 +9,4 @@ scikit-learn
 fastapi
 PyPDF2
 pdf2image
+python-binary-memcached
