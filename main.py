@@ -184,7 +184,9 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
     client.set(vector_key, vectors, 600)
     # memcache embeddings
     embedding_key = f'{mem_key_prefix}_embedding'
+    print('embedding_key', embedding_key)
     client.set(embedding_key, embeddings, 600)
+    print('embedding is ok.')
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
 
