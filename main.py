@@ -38,10 +38,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = bmemcached.Client(('m-t4na309c514fbe44.memcache.singapore.rds.aliyuncs.com:11211'), 'm-t4na309c514fbe44', os.getenv('MEMCACHED_PWD'))
-global_cache: dict[str, str]= {
-    'count': 0
-}
+client = bmemcached.Client((os.getenv('MEMCACHED_HOST')), os.getenv('MEMCACHED_ACCOUNT_ID'), os.getenv('MEMCACHED_PWD'))
 
 def load_book(file_obj, file_extension):
     """Load the content of a book based on its file type."""
@@ -115,23 +112,7 @@ def create_final_summary(summaries, openai_api_key):
 def extract_book_texts(uploaded_file):
     file_extension = os.path.splitext(uploaded_file.name)[1].lower()
     text = load_book(uploaded_file, file_extension)
-    return text
-
-def generate_summary(openai_api_key, num_clusters=11, verbose=False):
-    # extract_book_texts(uploaded_file)
-    # docs, vectors, tokens = split_and_embed(global_cache.get('texts'), openai_api_key)
-    d = dict()
-    # vectors = global_cache.get('vectors')
-    vectors = client.get(global_cache.get('vector_key'))
-    docs = client.get(global_cache.get('doc_key'))
-    print(len(vectors))
-    selected_indices = cluster_embeddings(vectors, num_clusters)
-    summaries = summarize_chunks(docs, selected_indices, openai_api_key)
-    final_summary = create_final_summary(summaries, openai_api_key)
-    # return final_summary
-    d['final_summary'] = final_summary
-    return d
-    
+    return text 
 
 @app.post("/api/uploadfile/")
 async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(None, alias="deviceId")):
@@ -163,15 +144,13 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
     docs, vectors, tokens = split_and_embed(texts, openai_api_key)
     print('docs, vectors, tokens generated.')
     doc_key = f'{mem_key_prefix}_doc'
-    global_cache['doc_key'] = doc_key
     client.set(doc_key, docs, 600)
 
     vector_key = f'{mem_key_prefix}_vector'
-    global_cache['vector_key'] = vector_key
     client.set(vector_key, vectors, 600)
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
-    # client.set('IS_UPLOADING', 'NO', 600)
+
     return {
         'code': 200,
         'msg': 'the book has been uploaded successfully.',
@@ -186,42 +165,27 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
     
 
 @app.post("/api/summarize")
-async def summarize_file(request: dict):
-    # save_to = BOOKS_DIR / request['filename']
-    # with open(save_to, 'rb') as file: 
-    res = generate_summary(openai_api_key, 11, verbose=True)
+async def summarize_file(request: dict, deviceId: str = Header(None, alias="deviceId")):
+    mem_key_prefix = deviceId + "_" + request['filename']
+    vectors = client.get(f'{mem_key_prefix}_vector')
+    docs = client.get(f'{mem_key_prefix}_doc')
+    print(len(vectors))
+    selected_indices = cluster_embeddings(vectors, 11)
+    summaries = summarize_chunks(docs, selected_indices, openai_api_key)
+    final_summary = create_final_summary(summaries, openai_api_key)
 
     return {
         'code': 200,
         'msg': 'the summarization has been generated successfully.',
         'data': {
             'fileName': request['filename'],
-            'summary': res['final_summary'],
+            'summary': final_summary,
         }
     }
 
-# @app.get('/api/grabservice')
-# async def grabService():
-#     # client.set('IS_UPLOADING', 'NO')
-#     isUploading = client.get('IS_UPLOADING')
-#     if isUploading == 'YES':
-#         return {
-#             'code': 429,
-#             'msg': 'server is busy',
-#             'data': ''
-#         }
-    
-#     client.set('IS_UPLOADING', 'YES', 600)
-#     return {
-#         'code': 200,
-#         'msg': 'service available',
-#         'data': '' 
-#     }
-
 @app.get('/api')
 async def root(): 
-    global_cache['count'] = global_cache['count'] + 1
-    return { 'message': 'Hello World', 'count': global_cache['count'], 'pid': os.getpid()}
+    return { 'message': 'Hello World'}
 
 # Testing the summarizer
 # if __name__ == '__main__':
