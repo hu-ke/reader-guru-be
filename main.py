@@ -10,7 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
-# from langchain.vectorstores import Chroma, Pinecone
+from langchain.vectorstores import Chroma, Pinecone
 from fastapi import FastAPI, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -116,25 +116,28 @@ def extract_book_texts(uploaded_file):
 
 @app.post("/api/uploadFile/")
 async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(None, alias="deviceId")):
-    print('start upload.')
+    print('start uploading.')
     data = await file_upload.read()
     personal_book_directory = BOOKS_DIR / deviceId
-    target_file =  personal_book_directory / file_upload['filename']
+    target_file =  personal_book_directory / file_upload.filename
     with open(target_file, 'wb') as f:
         f.write(data)
 
     return {
         'code': 200,
         'msg': 'the book has been uploaded successfully.',
-        'data': ''
+        'data': {
+            'fileName': file_upload.filename
+        }
     }
 
 @app.post("/api/generateFileInfo")
-async def generate_file_info(filename, deviceId: str = Header(None, alias="deviceId")):
+async def generate_file_info(request: dict, deviceId: str = Header(None, alias="deviceId")):
+    print('start generating file info.', request['filename'])
     personal_book_directory = BOOKS_DIR / deviceId
-    target_file =  personal_book_directory / filename
+    target_file =  personal_book_directory / request['filename']
 
-    cover_name = os.path.splitext(filename)[0].lower()
+    cover_name = os.path.splitext(request['filename'])[0].lower()
     cover_name = f"{cover_name}.png"
 
     target_book_cover = BOOKS_COVERS_DIR / cover_name
@@ -143,7 +146,7 @@ async def generate_file_info(filename, deviceId: str = Header(None, alias="devic
     print('start to generate book cover')
     extract_cover(target_file, target_book_cover)
     print('book cover generated.')
-    mem_key_prefix = deviceId + "_" + filename
+    mem_key_prefix = deviceId + "_" + request['filename']
     print(mem_key_prefix)
 
     with open(target_file, 'rb') as file:
@@ -168,7 +171,7 @@ async def generate_file_info(filename, deviceId: str = Header(None, alias="devic
             'numsOfTokens': tokens,
             'numsOfDocs': len(docs),
             'tokensOfFirstDoc': tokens_of_first_doc,
-            'fileName': os.path.splitext(filename)[0].lower()
+            'fileName': os.path.splitext(request['filename'])[0].lower()
         }
     }
     
