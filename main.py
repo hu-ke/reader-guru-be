@@ -145,7 +145,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
         'code': 200,
         'msg': 'successful',
         'data': {
-            # 'answer': len(answer)
+            'answer': len(answer)
         }
     }
 
