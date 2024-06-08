@@ -138,9 +138,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     # get documents
     doc_key = f'{mem_key_prefix}_doc'
     documents = client.get(doc_key)
-    # get embeddings
-    # embedding_key = f'{mem_key_prefix}_embedding'
-    # embeddings = client.get(embedding_key)
+    print(len(documents))
     db = Chroma.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
     answer = db.similarity_search(query)
     return {
