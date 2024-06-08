@@ -114,27 +114,36 @@ def extract_book_texts(uploaded_file):
     text = load_book(uploaded_file, file_extension)
     return text 
 
-@app.post("/api/uploadfile/")
+@app.post("/api/uploadFile/")
 async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(None, alias="deviceId")):
     print('start upload.')
     data = await file_upload.read()
     personal_book_directory = BOOKS_DIR / deviceId
-    target_file =  personal_book_directory / file_upload.filename
-    if not os.path.exists(personal_book_directory):
-        os.makedirs(personal_book_directory)
+    target_file =  personal_book_directory / file_upload['filename']
+    with open(target_file, 'wb') as f:
+        f.write(data)
 
-    cover_name = os.path.splitext(file_upload.filename)[0].lower()
+    return {
+        'code': 200,
+        'msg': 'the book has been uploaded successfully.',
+        'data': ''
+    }
+
+@app.post("/api/generateFileInfo")
+async def generate_file_info(filename, deviceId: str = Header(None, alias="deviceId")):
+    personal_book_directory = BOOKS_DIR / deviceId
+    target_file =  personal_book_directory / filename
+
+    cover_name = os.path.splitext(filename)[0].lower()
     cover_name = f"{cover_name}.png"
 
     target_book_cover = BOOKS_COVERS_DIR / cover_name
-
-    with open(target_file, 'wb') as f:
-        f.write(data)
-    
+    if not os.path.exists(personal_book_directory):
+        os.makedirs(personal_book_directory)
     print('start to generate book cover')
     extract_cover(target_file, target_book_cover)
     print('book cover generated.')
-    mem_key_prefix = deviceId + "_" + file_upload.filename
+    mem_key_prefix = deviceId + "_" + filename
     print(mem_key_prefix)
 
     with open(target_file, 'rb') as file:
@@ -153,13 +162,13 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
     return {
         'code': 200,
-        'msg': 'the book has been uploaded successfully.',
+        'msg': 'the book info has been generated successfully.',
         'data': {
             'coverImgUrl': f'http://reader.guru/images/{cover_name}',
             'numsOfTokens': tokens,
             'numsOfDocs': len(docs),
             'tokensOfFirstDoc': tokens_of_first_doc,
-            'fileName': os.path.splitext(file_upload.filename)[0].lower()
+            'fileName': os.path.splitext(filename)[0].lower()
         }
     }
     
