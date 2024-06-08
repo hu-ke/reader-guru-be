@@ -166,6 +166,7 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
 @app.post("/api/summarize")
 async def summarize_file(request: dict, deviceId: str = Header(None, alias="deviceId")):
+    print('start summarizing')
     mem_key_prefix = deviceId + "_" + request['filename']
     vectors = client.get(f'{mem_key_prefix}_vector')
     docs = client.get(f'{mem_key_prefix}_doc')
