@@ -39,7 +39,9 @@ app.add_middleware(
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = bmemcached.Client(('m-t4na309c514fbe44.memcache.singapore.rds.aliyuncs.com:11211'), 'm-t4na309c514fbe44', os.getenv('MEMCACHED_PWD'))
-global_cache: dict[str, str]= {}
+global_cache: dict[str, str]= {
+    'count': 0
+}
 
 def load_book(file_obj, file_extension):
     """Load the content of a book based on its file type."""
@@ -218,7 +220,8 @@ async def summarize_file(request: dict):
 
 @app.get('/api')
 async def root(): 
-    return { 'message': 'Hello World'}
+    global_cache['count'] = global_cache['count'] + 1
+    return { 'message': 'Hello World', 'count': global_cache['count'], 'pid': os.getpid()}
 
 # Testing the summarizer
 # if __name__ == '__main__':
