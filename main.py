@@ -69,7 +69,7 @@ def split_and_embed(text, openai_api_key):
     vectors = embeddings.embed_documents(content_list)
     tokens = num_tokens_from_string(' '.join(content_list), 'cl100k_base')
     # vectors = embeddings.embed_documents([x.page_content for x in docs])
-    return docs, vectors, tokens
+    return docs, vectors, embeddings, tokens
 
 
 def cluster_embeddings(vectors, num_clusters):
@@ -131,6 +131,27 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
         }
     }
 
+@app.post("/api/queryBook")
+async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId")):
+    query = request['query']
+    mem_key_prefix = deviceId + "_" + request['filename']
+    # get documents
+    doc_key = f'{mem_key_prefix}_doc'
+    documents = client.get(doc_key)
+    # get embeddings
+    embedding_key = f'{mem_key_prefix}_embedding'
+    embeddings = client.get(embedding_key)
+    db = Chroma.from_documents(documents, embeddings)
+    answer = db.similarity_search(query)
+    return {
+        'code': 200,
+        'msg': 'successful',
+        'data': {
+            'answer': answer
+        }
+    }
+
+
 @app.post("/api/generateFileInfo")
 async def generate_file_info(request: dict, deviceId: str = Header(None, alias="deviceId")):
     print('start generating file info.', request['filename'])
@@ -153,19 +174,23 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
         texts = extract_book_texts(file)
         print('text generated.')
         
-    docs, vectors, tokens = split_and_embed(texts, openai_api_key)
+    docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
     print('docs, vectors, tokens generated.')
+    # memcache documents
     doc_key = f'{mem_key_prefix}_doc'
     client.set(doc_key, docs, 600)
-
+    # memcache vectors
     vector_key = f'{mem_key_prefix}_vector'
     client.set(vector_key, vectors, 600)
+    # memcache embeddings
+    embedding_key = f'{mem_key_prefix}_embedding'
+    client.set(embedding_key, embeddings, 600)
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
 
     return {
         'code': 200,
-        'msg': 'The workspace is ready. you can summarize or chat with the chatbot now.',
+        'msg': 'The workspace is ready. Now you can summarize or chat with the chatbot.',
         'data': {
             'coverImgUrl': f'http://reader.guru/images/{cover_name}',
             'numsOfTokens': tokens,
