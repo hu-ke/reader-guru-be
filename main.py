@@ -139,9 +139,9 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     doc_key = f'{mem_key_prefix}_doc'
     documents = client.get(doc_key)
     # get embeddings
-    embedding_key = f'{mem_key_prefix}_embedding'
-    embeddings = client.get(embedding_key)
-    db = Chroma.from_documents(documents, embeddings)
+    # embedding_key = f'{mem_key_prefix}_embedding'
+    # embeddings = client.get(embedding_key)
+    db = Chroma.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
     answer = db.similarity_search(query)
     return {
         'code': 200,
@@ -185,8 +185,8 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
     # memcache embeddings
     embedding_key = f'{mem_key_prefix}_embedding'
     print('embedding_key', embedding_key)
-    client.set(embedding_key, embeddings, 600)
-    print('embedding is ok.')
+    # client.set(embedding_key, embeddings, 600)
+    # print('embedding is ok.')
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
 
