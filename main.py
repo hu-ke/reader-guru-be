@@ -198,7 +198,7 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
             'numsOfTokens': tokens,
             'numsOfDocs': len(docs),
             'tokensOfFirstDoc': tokens_of_first_doc,
-            'fileName': os.path.splitext(request['filename'])[0].lower()
+            'fileName': request['filename']
         }
     }
     
