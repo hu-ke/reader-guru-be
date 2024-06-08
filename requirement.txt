@@ -11,4 +11,3 @@ PyPDF2
 pdf2image
 python-binary-memcached
 pypdf
-chromadb

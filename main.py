@@ -10,7 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
-from langchain.vectorstores import Chroma, Pinecone
+from langchain_community.vectorstores import FAISS
 from fastapi import FastAPI, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -139,13 +139,13 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     doc_key = f'{mem_key_prefix}_doc'
     documents = client.get(doc_key)
     print(len(documents))
-    db = Chroma.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
+    db = FAISS.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
     answer = db.similarity_search(query)
     return {
         'code': 200,
         'msg': 'successful',
         'data': {
-            'answer': answer
+            'answer': len(answer)
         }
     }
 
