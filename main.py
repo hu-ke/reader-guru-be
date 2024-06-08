@@ -125,7 +125,7 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
     return {
         'code': 200,
-        'msg': 'the book has been uploaded successfully.',
+        'msg': 'Your book has been uploaded successfully! And now we are creating workspace for your book, just a moment.',
         'data': {
             'fileName': file_upload.filename
         }
@@ -165,7 +165,7 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
 
     return {
         'code': 200,
-        'msg': 'the book info has been generated successfully.',
+        'msg': 'The workspace is ready. you can summarize or chat with the chatbot now.',
         'data': {
             'coverImgUrl': f'http://reader.guru/images/{cover_name}',
             'numsOfTokens': tokens,
