@@ -39,6 +39,8 @@ app.add_middleware(
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = bmemcached.Client((os.getenv('MEMCACHED_HOST')), os.getenv('MEMCACHED_ACCOUNT_ID'), os.getenv('MEMCACHED_PWD'))
+llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
+chain = load_qa_chain(llm, chain_type="stuff")
 
 def load_book(file_obj, file_extension):
     """Load the content of a book based on its file type."""
@@ -133,19 +135,21 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
 @app.post("/api/queryBook")
 async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId")):
+    print('query_book..')
     query = request['query']
     mem_key_prefix = deviceId + "_" + request['filename']
     # get documents
     doc_key = f'{mem_key_prefix}_doc'
     documents = client.get(doc_key)
-    print(len(documents))
     db = FAISS.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
-    answer = db.similarity_search(query)
+    selectedDocs = db.similarity_search(query)
+    print(len(selectedDocs))
+    answer = chain.run(input_documents=selectedDocs, question=query)
     return {
         'code': 200,
         'msg': 'successful',
         'data': {
-            'answer': len(answer)
+            'answer': answer
         }
     }
 
