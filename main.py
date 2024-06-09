@@ -121,6 +121,8 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
     print('start uploading.')
     data = await file_upload.read()
     personal_book_directory = BOOKS_DIR / deviceId
+    if not os.path.exists(personal_book_directory):
+        os.makedirs(personal_book_directory)
     target_file =  personal_book_directory / file_upload.filename
     with open(target_file, 'wb') as f:
         f.write(data)
@@ -164,8 +166,7 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
     cover_name = f"{cover_name}.png"
 
     target_book_cover = BOOKS_COVERS_DIR / cover_name
-    if not os.path.exists(personal_book_directory):
-        os.makedirs(personal_book_directory)
+   
     print('start to generate book cover')
     extract_cover(target_file, target_book_cover)
     print('book cover generated.')
