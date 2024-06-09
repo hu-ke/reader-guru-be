@@ -155,6 +155,26 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
         }
     }
 
+def generate_file_vectors(deviceId, filename):
+    personal_book_directory = BOOKS_DIR / deviceId
+    target_file =  personal_book_directory / filename
+    with open(target_file, 'rb') as file:
+        texts = extract_book_texts(file)
+        print('text generated.')
+    docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
+    print('docs, vectors, tokens generated.')
+
+    # set memcache
+    mem_key_prefix = deviceId + "_" + filename
+    print(mem_key_prefix)
+    # memcache documents
+    doc_key = f'{mem_key_prefix}_doc'
+    client.set(doc_key, docs, 600)
+    # memcache vectors
+    vector_key = f'{mem_key_prefix}_vector'
+    client.set(vector_key, vectors, 600)
+    return docs, tokens
+
 
 @app.post("/api/generateFileInfo")
 async def generate_file_info(request: dict, deviceId: str = Header(None, alias="deviceId")):
@@ -162,34 +182,16 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
     personal_book_directory = BOOKS_DIR / deviceId
     target_file =  personal_book_directory / request['filename']
 
+    # cover generation
     cover_name = os.path.splitext(request['filename'])[0].lower()
     cover_name = f"{cover_name}.png"
-
     target_book_cover = BOOKS_COVERS_DIR / cover_name
-   
     print('start to generate book cover')
     extract_cover(target_file, target_book_cover)
     print('book cover generated.')
-    mem_key_prefix = deviceId + "_" + request['filename']
-    print(mem_key_prefix)
 
-    with open(target_file, 'rb') as file:
-        texts = extract_book_texts(file)
-        print('text generated.')
-        
-    docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
-    print('docs, vectors, tokens generated.')
-    # memcache documents
-    doc_key = f'{mem_key_prefix}_doc'
-    client.set(doc_key, docs, 600)
-    # memcache vectors
-    vector_key = f'{mem_key_prefix}_vector'
-    client.set(vector_key, vectors, 600)
-    # memcache embeddings
-    embedding_key = f'{mem_key_prefix}_embedding'
-    print('embedding_key', embedding_key)
-    # client.set(embedding_key, embeddings, 600)
-    # print('embedding is ok.')
+    # vector related generation
+    docs, tokens = generate_file_vectors(deviceId, filename=request['filename'])
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
 
@@ -212,6 +214,10 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     mem_key_prefix = deviceId + "_" + request['filename']
     vectors = client.get(f'{mem_key_prefix}_vector')
     docs = client.get(f'{mem_key_prefix}_doc')
+    # memcache expired
+    if (vectors is None | docs is None): 
+        generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+    
     print(len(vectors))
     selected_indices = cluster_embeddings(vectors, 11)
     summaries = summarize_chunks(docs, selected_indices, openai_api_key)
