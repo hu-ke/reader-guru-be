@@ -217,6 +217,8 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     # memcache expired
     if (vectors is None or docs is None): 
         generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+        vectors = client.get(f'{mem_key_prefix}_vector')
+        docs = client.get(f'{mem_key_prefix}_doc')
     
     print(len(vectors))
     selected_indices = cluster_embeddings(vectors, 11)
