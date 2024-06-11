@@ -17,7 +17,8 @@ from pathlib import Path
 from extractImg import extract_cover
 from turnTextIntoTokens import num_tokens_from_string
 from dotenv import load_dotenv
-import bmemcached
+from pymemcache.client import base
+
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
 BOOKS_COVERS_DIR = Path() / 'book_covers'
@@ -38,7 +39,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = bmemcached.Client((os.getenv('MEMCACHED_HOST')), os.getenv('MEMCACHED_ACCOUNT_ID'), os.getenv('MEMCACHED_PWD'))
+client = base.Client(('localhost', 11211))
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 chain = load_qa_chain(llm, chain_type="stuff")
 
