@@ -18,7 +18,7 @@ from lib.extractImg import extract_cover
 from lib.turnTextIntoTokens import num_tokens_from_string
 from lib.serializer import json_serializer, json_deserializer
 from dotenv import load_dotenv
-from pymemcache.client import base
+import bmemcached
 import json
 
 load_dotenv()
@@ -41,7 +41,8 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = base.Client(('localhost', 11211))
+# client = base.Client(('localhost', 11211))
+client = bmemcached.Client(('127.0.0.1:11211', ))
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 chain = load_qa_chain(llm, chain_type="stuff")
 
@@ -161,7 +162,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 def generate_file_vectors(deviceId, filename):
     personal_book_directory = BOOKS_DIR / deviceId
     target_file =  personal_book_directory / filename
-    with open(target_file, 'rb', encoding='utf-8') as file:
+    with open(target_file, 'rb') as file:
         texts = extract_book_texts(file)
         print('text generated.')
     docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
