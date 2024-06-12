@@ -41,7 +41,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = base.Client(('localhost', 11211), serializer=json_serializer, deserializer=json_deserializer)
+client = base.Client(('localhost', 11211))
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 chain = load_qa_chain(llm, chain_type="stuff")
 
