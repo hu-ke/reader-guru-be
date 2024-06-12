@@ -8,5 +8,5 @@ threads=2
 timeout=1200
 loglevel='debug' # 日志级别
 access_log_format = '%(t)s %(p)s %(h)s "%(r)s" %(s)s %(L)s %(b)s %(f)s" "%(a)s"'
-accesslog = "gunicorn_access.log"
-errorlog = "gunicorn_error.log"
+accesslog = "logs/gunicorn_access.log"
+errorlog = "logs/gunicorn_error.log"

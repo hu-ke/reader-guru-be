@@ -14,10 +14,12 @@ from langchain_community.vectorstores import FAISS
 from fastapi import FastAPI, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from extractImg import extract_cover
-from turnTextIntoTokens import num_tokens_from_string
+from lib.extractImg import extract_cover
+from lib.turnTextIntoTokens import num_tokens_from_string
+from lib.serializer import json_serializer, json_deserializer
 from dotenv import load_dotenv
 from pymemcache.client import base
+import json
 
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
@@ -39,7 +41,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-client = base.Client(('localhost', 11211))
+client = base.Client(('localhost', 11211), serializer=json_serializer, deserializer=json_deserializer)
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 chain = load_qa_chain(llm, chain_type="stuff")
 
