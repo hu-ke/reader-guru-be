@@ -161,9 +161,8 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 def generate_file_vectors(deviceId, filename):
     personal_book_directory = BOOKS_DIR / deviceId
     target_file =  personal_book_directory / filename
-    with open(target_file, 'rb') as file:
+    with open(target_file, 'rb', encoding='utf-8') as file:
         texts = extract_book_texts(file)
-        texts.encode('utf-8')
         print('text generated.')
     docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
     print('docs, vectors, tokens generated.')
