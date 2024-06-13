@@ -186,12 +186,14 @@ def generate_file_vectors(deviceId, filename):
 
     # set memcache
     mem_key_prefix = deviceId + "_" + filename
-    print(mem_key_prefix)
+    print('memcache key prefix:', mem_key_prefix)
     # memcache documents
     doc_key = f'{mem_key_prefix}_doc'
+    print('docs len', len(docs))
     client.set(doc_key, docs, 600)
     # memcache vectors
     vector_key = f'{mem_key_prefix}_vector'
+    print('vectors len', len(vectors))
     client.set(vector_key, vectors, 600)
     return docs, tokens
 
