@@ -243,6 +243,7 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     # memcache expired
     if (vectors is None or docs is None): 
         docs = generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+        print('docs', docs, len(docs))
         if len(docs) == 0:
             return {
                 'code': 500,
