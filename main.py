@@ -155,14 +155,21 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     mem_key_prefix = deviceId + "_" + request['filename']
     # get documents
     doc_key = f'{mem_key_prefix}_doc'
-    documents = client.get(doc_key)
+    docs = client.get(doc_key)
+    
+    # memcache expired
+    if (docs is None): 
+        # cannot omit tokens here.
+        docs, tokens = generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+        print('query_book docs', len(docs))
+        if len(docs) == 0:
+            return {
+                'code': 500,
+                'msg': 'Non-existent file.',
+            }
+        docs = client.get(f'{mem_key_prefix}_doc')
 
-    if (documents is None):
-        return {
-            'code': 500,
-            'msg': 'Non-existent file.',
-        }
-    db = FAISS.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
+    db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
     selectedDocs = db.similarity_search(query)
     answer = chain.run(input_documents=selectedDocs, question=query)
     return {
