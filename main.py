@@ -88,7 +88,7 @@ def summarize_chunks(docs, selected_indices, openai_api_key, lang):
     ```{text}```
     SUMMARY:
     """
-    if lang == 'ch':
+    if lang == 'zh':
         map_prompt = """
         这里有一段来自一本书的段落。你的任务是对这段文字进行全面的总结。确保准确性，避免添加任何不在原文中的解释或额外细节。摘要至少应有三段，完整地表达出原文的要点。
         ```{text}```
@@ -113,7 +113,7 @@ def create_final_summary(summaries, openai_api_key, lang):
     ```{text}```
     COHESIVE SUMMARY:
     """
-    if lang == 'ch':
+    if lang == 'zh':
         combine_prompt = """
         这里有一些段落摘要，它们来自于一本书。你的任务是把这些摘要编织成一个连贯且详细的总结。读者应该能够从你的总结中理解书中的主要事件或要点。确保保持内容的准确性，并以清晰而引人入胜的方式呈现。
         ```{text}```
