@@ -244,7 +244,7 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     if (vectors is None or docs is None): 
         # cannot omit tokens here.
         docs, tokens = generate_file_vectors(deviceId=deviceId, filename=request['filename'])
-        print('docs', docs, len(docs))
+        print('docs', len(docs))
         if len(docs) == 0:
             return {
                 'code': 500,
@@ -253,7 +253,7 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
         vectors = client.get(f'{mem_key_prefix}_vector')
         docs = client.get(f'{mem_key_prefix}_doc')
     
-    print(len(vectors))
+    print(len(docs), len(vectors))
     selected_indices = cluster_embeddings(vectors, 11)
     summaries = summarize_chunks(docs, selected_indices, openai_api_key, lang)
     final_summary = create_final_summary(summaries, openai_api_key, lang)
