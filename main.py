@@ -156,9 +156,14 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     # get documents
     doc_key = f'{mem_key_prefix}_doc'
     documents = client.get(doc_key)
+
+    if (documents is None):
+        return {
+            'code': 500,
+            'msg': 'Non-existent file.',
+        }
     db = FAISS.from_documents(documents, OpenAIEmbeddings(openai_api_key=openai_api_key))
     selectedDocs = db.similarity_search(query)
-    print(len(selectedDocs))
     answer = chain.run(input_documents=selectedDocs, question=query)
     return {
         'code': 200,
