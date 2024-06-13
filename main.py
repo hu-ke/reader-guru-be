@@ -193,18 +193,18 @@ def generate_file_vectors(deviceId, filename):
         print('file not exits', filename)
         return docs, tokens
     docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
-    print('docs, vectors, tokens generated.')
+    print('generate_file_vectors: docs, vectors, tokens generated.')
 
     # set memcache
     mem_key_prefix = deviceId + "_" + filename
-    print('memcache key prefix:', mem_key_prefix)
+    print('generate_file_vectors: memcache key prefix:', mem_key_prefix)
     # memcache documents
     doc_key = f'{mem_key_prefix}_doc'
-    print('docs len', len(docs))
+    print('generate_file_vectors: docs len', len(docs))
     client.set(doc_key, docs, 600)
     # memcache vectors
     vector_key = f'{mem_key_prefix}_vector'
-    print('vectors len', len(vectors))
+    print('generate_file_vectors: vectors len', len(vectors))
     client.set(vector_key, vectors, 600)
     return docs, tokens
 
@@ -257,7 +257,7 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     if (vectors is None or docs is None): 
         # cannot omit tokens here.
         docs, tokens = generate_file_vectors(deviceId=deviceId, filename=request['filename'])
-        print('docs', len(docs))
+        print('summarize docs', len(docs))
         if len(docs) == 0:
             return {
                 'code': 500,
@@ -266,7 +266,6 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
         vectors = client.get(f'{mem_key_prefix}_vector')
         docs = client.get(f'{mem_key_prefix}_doc')
     
-    print(len(docs), len(vectors))
     selected_indices = cluster_embeddings(vectors, 11)
     summaries = summarize_chunks(docs, selected_indices, openai_api_key, lang)
     final_summary = create_final_summary(summaries, openai_api_key, lang)
