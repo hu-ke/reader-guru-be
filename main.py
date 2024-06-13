@@ -19,7 +19,6 @@ from lib.turnTextIntoTokens import num_tokens_from_string
 from lib.serializer import json_serializer, json_deserializer
 from dotenv import load_dotenv
 import bmemcached
-import json
 
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
@@ -41,8 +40,7 @@ app.add_middleware(
 )
 
 openai_api_key = os.getenv('OPENAI_API_KEY')
-# client = base.Client(('localhost', 11211))
-client = bmemcached.Client(('127.0.0.1:11211', ))
+client = bmemcached.Client(('127.0.0.1:11211'))
 llm = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
 chain = load_qa_chain(llm, chain_type="stuff")
 
@@ -84,13 +82,19 @@ def cluster_embeddings(vectors, num_clusters):
     return sorted(closest_indices)
 
 
-def summarize_chunks(docs, selected_indices, openai_api_key):
+def summarize_chunks(docs, selected_indices, openai_api_key, lang):
     llm3_turbo = ChatOpenAI(temperature=0, openai_api_key=openai_api_key, max_tokens=1000, model='gpt-3.5-turbo-16k')
     map_prompt = """
-    这里有一段来自一本书的段落。你的任务是对这段文字进行全面的总结。确保准确性，避免添加任何不在原文中的解释或额外细节。摘要至少应有三段，完整地表达出原文的要点。
+    You are provided with a passage from a book. Your task is to produce a comprehensive summary of this passage. Ensure accuracy and avoid adding any interpretations or extra details not present in the original text. The summary should be at least three paragraphs long and fully capture the essence of the passage.
     ```{text}```
-    总结:
+    SUMMARY:
     """
+    if lang == 'ch':
+        map_prompt = """
+        这里有一段来自一本书的段落。你的任务是对这段文字进行全面的总结。确保准确性，避免添加任何不在原文中的解释或额外细节。摘要至少应有三段，完整地表达出原文的要点。
+        ```{text}```
+        总结:
+        """
     map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
     selected_docs = [docs[i] for i in selected_indices]
     summary_list = []
@@ -103,13 +107,19 @@ def summarize_chunks(docs, selected_indices, openai_api_key):
     
     return "\n".join(summary_list)
 
-def create_final_summary(summaries, openai_api_key):
+def create_final_summary(summaries, openai_api_key, lang):
     llm4 = ChatOpenAI(temperature=0, openai_api_key=openai_api_key, max_tokens=3000, model='gpt-4', request_timeout=120)
     combine_prompt = """
-    这里有一些段落摘要，它们来自于一本书。你的任务是把这些摘要编织成一个连贯且详细的总结。读者应该能够从你的总结中理解书中的主要事件或要点。确保保持内容的准确性，并以清晰而引人入胜的方式呈现。
+    You are given a series of summarized sections from a book. Your task is to weave these summaries into a single, cohesive, and verbose summary. The reader should be able to understand the main events or points of the book from your summary. Ensure you retain the accuracy of the content and present it in a clear and engaging manner.
     ```{text}```
-    综合总结:
+    COHESIVE SUMMARY:
     """
+    if lang == 'ch':
+        combine_prompt = """
+        这里有一些段落摘要，它们来自于一本书。你的任务是把这些摘要编织成一个连贯且详细的总结。读者应该能够从你的总结中理解书中的主要事件或要点。确保保持内容的准确性，并以清晰而引人入胜的方式呈现。
+        ```{text}```
+        综合总结:
+        """
     combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["text"])
     reduce_chain = load_summarize_chain(llm=llm4, chain_type="stuff", prompt=combine_prompt_template)
     final_summary = reduce_chain.run([Document(page_content=summaries)])
@@ -133,7 +143,7 @@ async def create_upload_file(file_upload: UploadFile, deviceId: str = Header(Non
 
     return {
         'code': 200,
-        'msg': 'Your book has been uploaded successfully! And now we are creating workspace for your book, just a moment.',
+        'msg': 'Your book has been uploaded successfully! And now we are creating workspace for your, just a moment.',
         'data': {
             'fileName': file_upload.filename
         }
@@ -213,8 +223,8 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
     
 
 @app.post("/api/summarize")
-async def summarize_file(request: dict, deviceId: str = Header(None, alias="deviceId")):
-    print('start summarizing')
+async def summarize_file(request: dict, deviceId: str = Header(None, alias="deviceId"), lang: str = Header(None, alias="lang")):
+    print('start summarizing', lang)
     mem_key_prefix = deviceId + "_" + request['filename']
     vectors = client.get(f'{mem_key_prefix}_vector')
     docs = client.get(f'{mem_key_prefix}_doc')
@@ -226,8 +236,8 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     
     print(len(vectors))
     selected_indices = cluster_embeddings(vectors, 11)
-    summaries = summarize_chunks(docs, selected_indices, openai_api_key)
-    final_summary = create_final_summary(summaries, openai_api_key)
+    summaries = summarize_chunks(docs, selected_indices, openai_api_key, lang)
+    final_summary = create_final_summary(summaries, openai_api_key, lang)
 
     return {
         'code': 200,

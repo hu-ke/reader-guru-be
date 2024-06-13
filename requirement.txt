@@ -12,5 +12,4 @@ pdf2image
 python-binary-memcached
 pypdf
 tiktoken
-pymemcache
 json
