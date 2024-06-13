@@ -16,7 +16,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from lib.extractImg import extract_cover
 from lib.turnTextIntoTokens import num_tokens_from_string
-from lib.serializer import json_serializer, json_deserializer
 from dotenv import load_dotenv
 import bmemcached
 
@@ -102,7 +101,7 @@ def summarize_chunks(docs, selected_indices, openai_api_key, lang):
 
     for doc in selected_docs:
         chunk_summary = chain.run([doc])
-        print(chunk_summary)
+        # print(chunk_summary)
         summary_list.append(chunk_summary)
     
     return "\n".join(summary_list)
