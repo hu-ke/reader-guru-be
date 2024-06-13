@@ -242,7 +242,13 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
     docs = client.get(f'{mem_key_prefix}_doc')
     # memcache expired
     if (vectors is None or docs is None): 
-        generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+        docs = generate_file_vectors(deviceId=deviceId, filename=request['filename'])
+        if len(docs) == 0:
+            return {
+                'code': 500,
+                'msg': 'Non-existent file.',
+                'data': {}
+            }
         vectors = client.get(f'{mem_key_prefix}_vector')
         docs = client.get(f'{mem_key_prefix}_doc')
     
