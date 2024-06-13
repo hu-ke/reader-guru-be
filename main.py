@@ -172,9 +172,15 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 def generate_file_vectors(deviceId, filename):
     personal_book_directory = BOOKS_DIR / deviceId
     target_file =  personal_book_directory / filename
-    with open(target_file, 'rb') as file:
-        texts = extract_book_texts(file)
-        print('text generated.')
+    docs = []
+    tokens = 0
+    try: 
+        with open(target_file, 'rb') as file:
+            texts = extract_book_texts(file)
+            print('text generated.')
+    except FileNotFoundError as e:
+        print('file not exits', filename)
+        return docs, tokens
     docs, vectors, embeddings, tokens = split_and_embed(texts, openai_api_key)
     print('docs, vectors, tokens generated.')
 
@@ -206,6 +212,12 @@ async def generate_file_info(request: dict, deviceId: str = Header(None, alias="
 
     # vector related generation
     docs, tokens = generate_file_vectors(deviceId, filename=request['filename'])
+    if len(docs) == 0:
+        return {
+            'code': 500,
+            'msg': 'Non-existent file.',
+            'data': {}
+        }
 
     tokens_of_first_doc = num_tokens_from_string(docs[0].page_content, 'cl100k_base')
 
