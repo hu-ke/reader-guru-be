@@ -18,6 +18,7 @@ from lib.extractImg import extract_cover
 from lib.turnTextIntoTokens import num_tokens_from_string
 from dotenv import load_dotenv
 import bmemcached
+import openai
 
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
@@ -63,7 +64,7 @@ def load_book(file_obj, file_extension):
     return text
 
 def split_and_embed(text, openai_api_key):
-    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=7000, chunk_overlap=500)
+    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=5000, chunk_overlap=100)
     docs = text_splitter.create_documents([text])
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     content_list = []
@@ -165,14 +166,29 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
         if len(docs) == 0:
             return {
                 'code': 500,
-                'msg': 'Non-existent file.',
+                'msg': 'The file has been removed on server, you need to upload again.',
             }
         docs = client.get(f'{mem_key_prefix}_doc')
 
     db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
+    # try: 
+    #     with open(target_file, 'rb') as file:
+    #         texts = extract_book_texts(file)
+    #         print('text generated.')
+    # except FileNotFoundError as e:
+    #     print('file not exits', filename)
+    #     return docs, tokens
     selectedDocs = db.similarity_search(query)
     print('[query boook] selectedDocs', len(selectedDocs))
-    answer = chain.run(input_documents=selectedDocs, question=query)
+    try:
+        answer = chain.run(input_documents=selectedDocs, question=query)
+    except openai.error.InvalidRequestError as e:
+        print(e)
+        return {
+            'code': 500,
+            'msg': 'reached token limit.'
+        }
+    
     return {
         'code': 200,
         'msg': 'successful',
