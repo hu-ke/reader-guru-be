@@ -63,7 +63,7 @@ def load_book(file_obj, file_extension):
     return text
 
 def split_and_embed(text, openai_api_key):
-    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=2000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=3000, chunk_overlap=100)
     docs = text_splitter.create_documents([text])
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     content_list = []
@@ -107,7 +107,7 @@ def summarize_chunks(docs, selected_indices, openai_api_key, lang):
     return "\n".join(summary_list)
 
 def create_final_summary(summaries, openai_api_key, lang):
-    llm4 = ChatOpenAI(temperature=0, openai_api_key=openai_api_key, max_tokens=3000, model='gpt-4', request_timeout=120)
+    llm4 = ChatOpenAI(temperature=0, openai_api_key=openai_api_key, max_tokens=2000, model='gpt-4', request_timeout=120)
     combine_prompt = """
     You are given a series of summarized sections from a book. Your task is to weave these summaries into a single, cohesive, and verbose summary. The reader should be able to understand the main events or points of the book from your summary. Ensure you retain the accuracy of the content and present it in a clear and engaging manner.
     ```{text}```
@@ -171,7 +171,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 
     db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
     selectedDocs = db.similarity_search(query)
-    print('[query boook] selectedDocs', len(selectedDocs))
+    print('[query book] selectedDocs', len(selectedDocs))
     try:
         answer = chain.run(input_documents=selectedDocs, question=query)
     except Exception as e:
