@@ -171,13 +171,6 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
         docs = client.get(f'{mem_key_prefix}_doc')
 
     db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
-    # try: 
-    #     with open(target_file, 'rb') as file:
-    #         texts = extract_book_texts(file)
-    #         print('text generated.')
-    # except FileNotFoundError as e:
-    #     print('file not exits', filename)
-    #     return docs, tokens
     selectedDocs = db.similarity_search(query)
     print('[query boook] selectedDocs', len(selectedDocs))
     try:
@@ -283,7 +276,12 @@ async def summarize_file(request: dict, deviceId: str = Header(None, alias="devi
         vectors = client.get(f'{mem_key_prefix}_vector')
         docs = client.get(f'{mem_key_prefix}_doc')
     
-    selected_indices = cluster_embeddings(vectors, 11)
+    n_clusters = 11
+    print('summarize vectors len', len(vectors))
+    if len(vectors) < 5:
+        n_clusters = 1
+    
+    selected_indices = cluster_embeddings(vectors, n_clusters)
     summaries = summarize_chunks(docs, selected_indices, openai_api_key, lang)
     final_summary = create_final_summary(summaries, openai_api_key, lang)
 
