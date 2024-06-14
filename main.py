@@ -63,7 +63,7 @@ def load_book(file_obj, file_extension):
     return text
 
 def split_and_embed(text, openai_api_key):
-    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=3000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=2000, chunk_overlap=100)
     docs = text_splitter.create_documents([text])
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     content_list = []
