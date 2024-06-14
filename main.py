@@ -63,7 +63,7 @@ def load_book(file_obj, file_extension):
     return text
 
 def split_and_embed(text, openai_api_key):
-    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=10000, chunk_overlap=3000)
+    text_splitter = RecursiveCharacterTextSplitter(separators=["\n\n", "\n", "\t"], chunk_size=7000, chunk_overlap=500)
     docs = text_splitter.create_documents([text])
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     content_list = []
@@ -171,7 +171,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 
     db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
     selectedDocs = db.similarity_search(query)
-    print('[query boook]', len(selectedDocs))
+    print('[query boook] selectedDocs', len(selectedDocs))
     answer = chain.run(input_documents=selectedDocs, question=query)
     return {
         'code': 200,
