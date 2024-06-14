@@ -171,6 +171,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
 
     db = FAISS.from_documents(docs, OpenAIEmbeddings(openai_api_key=openai_api_key))
     selectedDocs = db.similarity_search(query)
+    print('[query boook]', len(selectedDocs))
     answer = chain.run(input_documents=selectedDocs, question=query)
     return {
         'code': 200,
