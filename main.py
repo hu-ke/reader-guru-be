@@ -18,7 +18,6 @@ from lib.extractImg import extract_cover
 from lib.turnTextIntoTokens import num_tokens_from_string
 from dotenv import load_dotenv
 import bmemcached
-import openai
 
 load_dotenv()
 BOOKS_DIR = Path() / 'books'
@@ -175,7 +174,7 @@ async def query_book(request: dict, deviceId: str = Header(None, alias="deviceId
     print('[query boook] selectedDocs', len(selectedDocs))
     try:
         answer = chain.run(input_documents=selectedDocs, question=query)
-    except openai.error.InvalidRequestError as e:
+    except Exception as e:
         print(e)
         return {
             'code': 500,
