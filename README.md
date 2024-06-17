@@ -21,7 +21,7 @@ Book detail page
 
 ![](https://hukepublicbucket.oss-cn-hangzhou.aliyuncs.com/readerguru/readerguru-detailpage-en.png)
 # Work flow
-Each **summarizing** or **Q&A** process may takes few minutes mainly based on your file size as well as OpenAI model's processing efficiency. It's necessary for us to have a grasp of what's going on under the hood. Below is a diagram for the work flow.
+Each **summarizing** or **Q&A** process may takes few minutes mainly depending on your file size as well as OpenAI model's processing efficiency. It's necessary for us to have a grasp of what's going on under the hood. Below is a diagram for the work flow.
 
 ![](https://hukepublicbucket.oss-cn-hangzhou.aliyuncs.com/readerguru/readerguru-flow.png)
 
