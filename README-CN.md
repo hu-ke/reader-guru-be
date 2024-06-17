@@ -6,7 +6,7 @@
 </p>
 
 # 项目介绍
-利用**OpenAI**的能力，实现了文档内容**概要生成**和基于文档内容进行**问答**的功能。文件支持`pdf`和`epub`两种文件格式，支持概要和对话的本地持久化。网站免费使用，无需注册或登录。本项目是网站的前端部分代码。[进入网站>>](http://reader.guru/introduction)
+利用**OpenAI**的能力，实现了文档内容**概要生成**和基于文档内容进行**问答**的功能。文件支持`pdf`和`epub`两种文件格式，支持概要和对话的本地持久化。网站免费使用，无需注册或登录。本项目是网站的**后端部分**代码。[进入网站>>](http://reader.guru/introduction)
 # 技术栈
 - [前端](https://github.com/hu-ke/reader-guru-fe/)
     - Reactjs v18、dexie v4、Typescript v5
